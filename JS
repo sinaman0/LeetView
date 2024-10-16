@@ -1,0 +1,130 @@
+document.addEventListener("DOMContentLoaded", function() {
+
+
+    const searchButton= document.getElementById("search-button");
+    const usernameInput=document.getElementById("user-input");
+    const statsContainer=document.querySelector(".stats-container");
+    const easyProgressCircle=document.querySelector(".easy-progress");
+    const mediumProgressCircle=document.querySelector(".medium-progress");
+    const hardProgessCircle=document.querySelector(".hard-progress");
+    const easyLabel=document.querySelector(".easy-label");
+    const mediumLabel=document.querySelector(".medium-label");
+    const hardLabel=document.querySelector(".hard-label");
+    
+    
+    
+    //function to know that input is valid or not
+    
+    function validateUsername(username){
+        if(username.trim()=== "")
+        {
+            alert("username should not be empty");
+            return false;
+        }
+        const regex=/^[a-zA-Z0-9._]{3,16}$/;
+        const isMatching=regex.test(username);
+        if(!isMatching)
+        {
+           alert("invalid input");
+        }
+        return isMatching;
+    
+    
+    
+    }
+    
+    
+    
+    //api calling
+    
+    async function  fetchuserdetails(username)
+    {
+        
+    
+        try{
+            searchButton.textContent="Searching....";
+            searchButton.disabled=true;
+    
+            //const response=await fetch(url);
+    
+            const proxyUrl = `https://cors-anywhere.herokuapp.com/`
+            const targetUrl = 'https://leetcode.com/graphql/';
+            
+            const myHeaders = new Headers();
+            myHeaders.append("content-type", "application/json");
+    
+            const graphql = JSON.stringify({
+                query: "\n    query userSessionProgress($username: String!) {\n  allQuestionsCount {\n    difficulty\n    count\n  }\n  matchedUser(username: $username) {\n    submitStats {\n      acSubmissionNum {\n        difficulty\n        count\n        submissions\n      }\n      totalSubmissionNum {\n        difficulty\n        count\n        submissions\n      }\n    }\n  }\n}\n    ",
+                variables: { "username": `${username}` }
+            })
+            const requestOptions = {
+                method: "POST",
+                headers: myHeaders,
+                body: graphql,
+            };
+    
+            const response = await fetch(proxyUrl+targetUrl, requestOptions);
+    
+            if(!response.ok)
+            {
+                throw new Error("unable to fetch");
+            }
+    
+            const parseddata=await response.json();
+            console.log("logging",parseddata);
+    
+            displayUserdata(parseddata);
+        }
+        catch(error)
+        {
+            statsContainer.innerHTML = `<p>${error.message}</p>`
+        }
+        finally{
+            searchButton.textContent="search";
+            searchButton.disabled=false;
+        }
+    
+    
+    }
+    
+    
+    function updateProgress(solved,total,label,circle)
+    {
+        const progressdegree = (solved/total)*100;
+        circle.style.setProperty("--progress-degree",`${progressdegree}%`);
+    
+        label.textContent = `${solved}/${total}`;
+    
+    }
+    
+    function displayUserdata(parseddata){
+        //total kitne que hai ka data
+        const totalque = parseddata.data.allQuestionsCount[0].count;
+        const totaleasyque = parseddata.data.allQuestionsCount[1].count;
+        const totalmediumque = parseddata.data.allQuestionsCount[2].count;
+        const totalhardque = parseddata.data.allQuestionsCount[3].count;
+     
+        //total kitne solve kiye h ka data
+        const solvedtotalque= parseddata.data.matchedUser.submitStats.acSubmissionNum[0].count;
+        const solvedeasytotalque= parseddata.data.matchedUser.submitStats.acSubmissionNum[1].count;
+        const solvedmediumtotalque= parseddata.data.matchedUser.submitStats.acSubmissionNum[2].count;
+        const solvedhardtotalque= parseddata.data.matchedUser.submitStats.acSubmissionNum[3].count;
+    
+    updateProgress(solvedeasytotalque,totaleasyque,easyLabel,easyProgressCircle);
+    updateProgress(solvedmediumtotalque,totalmediumque,mediumLabel,mediumProgressCircle);
+    updateProgress(solvedhardtotalque,totalhardque,hardLabel,hardProgessCircle);
+    
+    
+    }
+    
+    searchButton.addEventListener('click',function(){
+        const username= usernameInput.value;
+        console.log("logiing :",username);
+    
+        if(validateUsername(username))
+        {
+            fetchuserdetails(username);
+        }
+    })
+    })
+    
